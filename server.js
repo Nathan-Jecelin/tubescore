@@ -586,12 +586,12 @@ app.post('/api/batch', requireAgency, async (req, res) => {
           subscriberCount: channelData.subscriberCount,
         };
 
-        db.prepare(`
+        const insertResult = db.prepare(`
           INSERT INTO scan_history (user_id, ip, video_id, video_title, channel_title, thumbnail_url, overall_grade, analysis_json, video_stats_json, scan_type, batch_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'batch', ?)
         `).run(req.user.id, ip, videoData.id, videoData.title, videoData.channelTitle, videoInfo.thumbnail, analysis.overall_grade, JSON.stringify(analysis), JSON.stringify(videoInfo), batchId);
 
-        results.push({ status: 'success', video: videoInfo, analysis });
+        results.push({ status: 'success', scanId: Number(insertResult.lastInsertRowid), video: videoInfo, analysis });
         succeeded++;
       } catch (err) {
         results.push({ status: 'error', videoId, error: err.message || 'Analysis failed' });

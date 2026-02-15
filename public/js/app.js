@@ -865,7 +865,7 @@ function renderBatchResults(data) {
       `;
     }
     return `
-      <div class="history-card batch-card" onclick="navigateTo('/history/${r.video.id}')">
+      <div class="history-card batch-card" onclick="navigateTo('/history/${r.scanId}')">
         <img src="${escapeHtml(r.video.thumbnail || '')}" alt="" class="history-thumb">
         <div class="history-info">
           <h4 class="history-title">${escapeHtml(r.video.title)}</h4>
