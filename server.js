@@ -208,11 +208,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "https://i.ytimg.com", "data:"],
-      connectSrc: ["'self'"],
+      imgSrc: ["'self'", "https://i.ytimg.com", "https://www.googletagmanager.com", "data:"],
+      connectSrc: ["'self'", "https://www.google-analytics.com", "https://*.google-analytics.com", "https://*.analytics.google.com", "https://*.googletagmanager.com"],
       frameSrc: ["https://checkout.stripe.com"],
     },
   },
