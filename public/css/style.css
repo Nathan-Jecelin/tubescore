@@ -265,6 +265,33 @@ a { color: var(--accent); text-decoration: none; }
   border-color: #3a3a50;
 }
 
+.scorecard-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-share:hover {
+  background: var(--surface2);
+  border-color: #3a3a50;
+}
+
 /* ── Loading ── */
 .loading {
   text-align: center;
@@ -1150,6 +1177,24 @@ a { color: var(--accent); text-decoration: none; }
   margin-bottom: 16px;
 }
 
+.btn-skip {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.btn-skip:hover {
+  color: var(--text);
+}
+
 .modal-divider {
   font-size: 13px;
   color: var(--text-muted);
@@ -1792,6 +1837,27 @@ a { color: var(--accent); text-decoration: none; }
   color: var(--gold);
 }
 
+/* ── Welcome Page ── */
+.welcome-hero {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 100px 24px 56px;
+  text-align: center;
+  position: relative;
+}
+
+.welcome-hero h1 {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+
+.welcome-hero .hero-sub {
+  margin-bottom: 36px;
+}
+
 /* ── Utilities ── */
 .hidden { display: none !important; }
 
@@ -1874,5 +1940,13 @@ a { color: var(--accent); text-decoration: none; }
   .compare-row {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .welcome-hero h1 {
+    font-size: 36px;
+  }
+
+  .scorecard-actions {
+    justify-content: center;
   }
 }

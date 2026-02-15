@@ -163,7 +163,7 @@ function navigateTo(path) {
 
 function handleRoute() {
   const hash = window.location.hash;
-  const pages = ['page-home', 'page-history', 'page-history-detail', 'page-settings', 'page-compare', 'page-compare-detail', 'page-batch', 'page-batch-detail'];
+  const pages = ['page-home', 'page-history', 'page-history-detail', 'page-settings', 'page-compare', 'page-compare-detail', 'page-batch', 'page-batch-detail', 'page-welcome'];
 
   // Hide all pages
   pages.forEach(p => {
@@ -208,6 +208,8 @@ function handleRoute() {
     if (!currentUser) { navigateTo('/'); return; }
     document.getElementById('page-settings').classList.remove('hidden');
     loadSettings();
+  } else if (hash === '#/welcome') {
+    document.getElementById('page-welcome').classList.remove('hidden');
   } else {
     // Home page
     document.getElementById('page-home').classList.remove('hidden');
@@ -243,6 +245,48 @@ async function checkStripeReturn() {
   } catch { /* ignore */ }
 }
 
+// ── Email Capture ──
+let emailResolve = null;
+
+function shouldShowEmailCapture() {
+  return !currentUser
+    && getLocalScans() >= 1
+    && !localStorage.getItem('tubescore_email_captured')
+    && !localStorage.getItem('tubescore_email_skipped');
+}
+
+function showEmailModal() {
+  document.getElementById('email-modal').classList.remove('hidden');
+  document.getElementById('capture-email').focus();
+  return new Promise(resolve => { emailResolve = resolve; });
+}
+
+function closeEmailModal() {
+  document.getElementById('email-modal').classList.add('hidden');
+  document.getElementById('email-capture-form').reset();
+  if (emailResolve) { emailResolve(); emailResolve = null; }
+}
+
+async function handleEmailCapture(e) {
+  e.preventDefault();
+  const email = document.getElementById('capture-email').value.trim();
+  if (!email) return;
+  try {
+    await fetch('/api/email-capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+  } catch { /* ignore */ }
+  localStorage.setItem('tubescore_email_captured', '1');
+  closeEmailModal();
+}
+
+function skipEmailCapture() {
+  localStorage.setItem('tubescore_email_skipped', '1');
+  closeEmailModal();
+}
+
 // ── Main Analysis ──
 async function handleAnalyze() {
   const input = document.getElementById('url-input');
@@ -252,6 +296,11 @@ async function handleAnalyze() {
   if (!url) {
     showError('Please paste a YouTube video URL.');
     return;
+  }
+
+  // Show email capture modal on 2nd scan for non-logged-in users
+  if (shouldShowEmailCapture()) {
+    await showEmailModal();
   }
 
   // Show loading
@@ -1066,6 +1115,21 @@ function resetApp() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function shareOnX() {
+  const title = document.getElementById('sc-title').textContent || 'my video';
+  const grade = document.getElementById('sc-overall').textContent || '?';
+  const text = `Just got my YouTube video graded by @TubeScore — scored a ${grade} overall. Try it free: ${window.location.origin}`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function handleWelcomeAnalyze() {
+  const url = document.getElementById('welcome-url-input').value.trim();
+  if (!url) return;
+  document.getElementById('url-input').value = url;
+  navigateTo('/');
+  setTimeout(() => handleAnalyze(), 100);
+}
+
 function gradeClass(grade) {
   const g = (grade || '').toUpperCase();
   if (g === 'A' || g === 'A+' || g === 'A-') return 'grade-a';
@@ -1102,6 +1166,10 @@ document.addEventListener('click', e => {
 // Allow Enter key to trigger analysis
 document.getElementById('url-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleAnalyze();
+});
+
+document.getElementById('welcome-url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleWelcomeAnalyze();
 });
 
 // ── Init ──

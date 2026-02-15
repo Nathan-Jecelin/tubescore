@@ -68,6 +68,15 @@ db.exec(`
   )
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS email_captures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    source TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
 // ── Idempotent migration: add scan_type and batch_id columns ──
 try { db.exec("ALTER TABLE scan_history ADD COLUMN scan_type TEXT DEFAULT 'single'"); } catch {}
 try { db.exec("ALTER TABLE scan_history ADD COLUMN batch_id TEXT"); } catch {}
@@ -291,6 +300,23 @@ app.get('/api/auth/me', softAuth, (req, res) => {
       plan: req.user.plan,
     },
   });
+});
+
+// ── Email capture endpoint ──
+app.post('/api/email-capture', (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email address.' });
+
+  try {
+    db.prepare('INSERT OR IGNORE INTO email_captures (email, source) VALUES (?, ?)').run(email, 'scan_modal');
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Email capture error:', err);
+    res.status(500).json({ error: 'Failed to save email.' });
+  }
 });
 
 // ── Main analysis endpoint ──

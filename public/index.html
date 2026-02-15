@@ -85,7 +85,10 @@
         <div class="wins-list" id="wins-list"></div>
       </div>
 
-      <button class="btn-secondary" onclick="resetApp()">Analyze Another Video</button>
+      <div class="scorecard-actions">
+        <button class="btn-secondary" onclick="resetApp()">Analyze Another Video</button>
+        <button class="btn-share" onclick="shareOnX()">Share on X</button>
+      </div>
     </section>
 
     <!-- How It Works -->
@@ -336,6 +339,19 @@
     </div>
   </section>
 
+  <!-- Welcome Page (X/Twitter traffic) -->
+  <div id="page-welcome" class="page-section hidden">
+    <section class="welcome-hero">
+      <h1>You saw the tweet. <span class="highlight">Here's the tool.</span></h1>
+      <p class="hero-sub">Paste your YouTube URL below. In 30 seconds, you'll know exactly what to fix.</p>
+      <div class="input-row">
+        <input type="text" id="welcome-url-input" placeholder="Paste a YouTube video URL..." autocomplete="off">
+        <button id="welcome-analyze-btn" onclick="handleWelcomeAnalyze()">Grade My Video — Free</button>
+      </div>
+      <p class="hint">No signup needed. Takes 30 seconds. Free forever for 3 videos/month.</p>
+    </section>
+  </div>
+
   <!-- Settings Page -->
   <section id="page-settings" class="page-section hidden">
     <div class="page-container">
@@ -420,6 +436,22 @@
         <span id="auth-toggle-text">Don't have an account?</span>
         <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(); return false;">Sign up</a>
       </p>
+    </div>
+  </div>
+
+  <!-- Email Capture Modal -->
+  <div id="email-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+      <h2>Save your scan history</h2>
+      <p>Enter your email to keep track of your video improvements.</p>
+      <form id="email-capture-form" onsubmit="handleEmailCapture(event)">
+        <div class="form-group">
+          <input type="email" id="capture-email" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="btn-primary btn-primary-full">Save & Continue</button>
+      </form>
+      <button class="btn-skip" onclick="skipEmailCapture()">Skip for now</button>
     </div>
   </div>
 
