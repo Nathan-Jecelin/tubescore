@@ -518,12 +518,17 @@ async function loadSettings() {
       scansEl.textContent = `${data.scans_used} (unlimited)`;
     }
 
-    if (data.plan !== 'free') {
+    const upgradeRow = document.getElementById('settings-upgrade-row');
+    if (data.plan === 'agency') {
       document.getElementById('settings-billing-row').classList.remove('hidden');
-      document.getElementById('settings-upgrade-row').classList.add('hidden');
+      upgradeRow.classList.add('hidden');
+    } else if (data.plan === 'pro') {
+      document.getElementById('settings-billing-row').classList.remove('hidden');
+      upgradeRow.classList.remove('hidden');
+      upgradeRow.innerHTML = '<button class="btn-gold" onclick="handleUpgrade(\'agency\')" style="padding:12px 24px;font-size:14px;">Upgrade to Agency — $29/mo</button>';
     } else {
       document.getElementById('settings-billing-row').classList.add('hidden');
-      document.getElementById('settings-upgrade-row').classList.remove('hidden');
+      upgradeRow.classList.remove('hidden');
     }
   } catch { /* ignore */ }
 
