@@ -395,9 +395,18 @@ app.post('/api/checkout', softAuth, async (req, res) => {
 });
 
 // ── Verify pro status ──
-app.get('/api/verify/:sessionId', async (req, res) => {
+app.get('/api/verify/:sessionId', softAuth, async (req, res) => {
   try {
     const status = await verifyProStatus(req.params.sessionId);
+
+    // If payment verified and user is logged in, update their plan directly
+    if (status.isPro && req.user) {
+      db.prepare(`
+        UPDATE users SET plan = ?, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(status.plan, status.customerId, status.subscriptionId, req.user.id);
+    }
+
     res.json(status);
   } catch (err) {
     console.error('Verify error:', err);
