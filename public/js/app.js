@@ -1118,7 +1118,7 @@ function resetApp() {
 function shareOnX() {
   const title = document.getElementById('sc-title').textContent || 'my video';
   const grade = document.getElementById('sc-overall').textContent || '?';
-  const text = `Just got my YouTube video graded by @TubeScore — scored a ${grade} overall. Try it free: ${window.location.origin}`;
+  const text = `Just got my YouTube video graded by @nathantubescore — scored a ${grade} overall. Try it free: https://tubescore-production.up.railway.app/`;
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
 }
 
