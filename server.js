@@ -16,7 +16,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ── SQLite setup ──
-const db = new Database(path.join(__dirname, 'tubescore.db'));
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'tubescore.db');
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
 db.exec(`
