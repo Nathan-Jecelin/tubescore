@@ -1091,6 +1091,14 @@ function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// ── FAQ Toggle ──
+document.addEventListener('click', e => {
+  const question = e.target.closest('.faq-question');
+  if (question) {
+    question.parentElement.classList.toggle('open');
+  }
+});
+
 // Allow Enter key to trigger analysis
 document.getElementById('url-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleAnalyze();
