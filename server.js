@@ -9,7 +9,7 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const { extractVideoId, getVideoData, getChannelData } = require('./services/youtube');
-const { analyzeVideo } = require('./services/analyzer');
+const { analyzeVideo, generateCompetitiveTakeaways } = require('./services/analyzer');
 const { stripe, createCheckoutSession, verifyProStatus, createBillingPortalSession } = require('./services/stripe');
 
 const app = express();
@@ -519,18 +519,25 @@ app.post('/api/compare', requireAgency, async (req, res) => {
       else comparison.ties.push(entry);
     });
 
+    // Generate competitive takeaways via AI
+    const takeawaysResult = await generateCompetitiveTakeaways(myVideoData, myAnalysis, compVideoData, compAnalysis);
+    const takeaways = takeawaysResult.takeaways || [];
+
     // Save both scans with shared batch_id
     const batchId = crypto.randomUUID();
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    // Store takeaways in the first scan's analysis_json so they can be retrieved from history
+    const myAnalysisWithTakeaways = { ...myAnalysis, _competitive_takeaways: takeaways };
 
     const insertStmt = db.prepare(`
       INSERT INTO scan_history (user_id, ip, video_id, video_title, channel_title, thumbnail_url, overall_grade, analysis_json, video_stats_json, scan_type, batch_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'compare', ?)
     `);
-    insertStmt.run(req.user.id, ip, myVideoData.id, myVideoData.title, myVideoData.channelTitle, myVideo.video.thumbnail, myAnalysis.overall_grade, JSON.stringify(myAnalysis), JSON.stringify(myVideo.video), batchId);
+    insertStmt.run(req.user.id, ip, myVideoData.id, myVideoData.title, myVideoData.channelTitle, myVideo.video.thumbnail, myAnalysis.overall_grade, JSON.stringify(myAnalysisWithTakeaways), JSON.stringify(myVideo.video), batchId);
     insertStmt.run(req.user.id, ip, compVideoData.id, compVideoData.title, compVideoData.channelTitle, competitor.video.thumbnail, compAnalysis.overall_grade, JSON.stringify(compAnalysis), JSON.stringify(competitor.video), batchId);
 
-    res.json({ batchId, myVideo, competitor, comparison });
+    res.json({ batchId, myVideo, competitor, comparison, takeaways });
   } catch (err) {
     console.error('Compare error:', err);
     res.status(500).json({ error: err.message || 'Comparison failed. Please try again.' });

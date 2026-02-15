@@ -625,9 +625,27 @@ function categoryLabel(key) {
   return labels[key] || key;
 }
 
+function buildTakeawaysHTML(takeaways) {
+  if (!takeaways || takeaways.length === 0) return '';
+  return `
+    <div class="competitive-takeaways">
+      <h3>Competitive Takeaways</h3>
+      <p class="takeaways-sub">What to steal from the competition.</p>
+      <div class="takeaways-list">
+        ${takeaways.map(t => `
+          <div class="takeaway-card">
+            <div class="takeaway-insight">${escapeHtml(t.insight)}</div>
+            <div class="takeaway-action">${escapeHtml(t.action)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderCompareResults(data) {
   const container = document.getElementById('compare-results');
-  const { myVideo, competitor, comparison } = data;
+  const { myVideo, competitor, comparison, takeaways } = data;
 
   const summaryHTML = `
     <div class="compare-summary">
@@ -659,6 +677,7 @@ function renderCompareResults(data) {
 
   container.innerHTML = `
     ${summaryHTML}
+    ${buildTakeawaysHTML(takeaways)}
     <div class="compare-scorecards">
       <div class="compare-scorecard">
         <h3 class="compare-scorecard-label">Your Video</h3>
@@ -738,10 +757,14 @@ async function loadCompareDetail(batchId) {
       </div>
     `;
 
+    // Extract takeaways stored in first scan's analysis
+    const takeaways = myVideo.analysis._competitive_takeaways || [];
+
     resultsDiv.innerHTML = `
       <h2>Competitor Comparison</h2>
       <p class="section-sub" style="margin-bottom:24px;">Compared on ${new Date(myVideo.created_at + 'Z').toLocaleDateString()}</p>
       ${summaryHTML}
+      ${buildTakeawaysHTML(takeaways)}
       <div class="compare-scorecards">
         <div class="compare-scorecard">
           <h3 class="compare-scorecard-label">Your Video</h3>

@@ -135,4 +135,52 @@ Analyze the thumbnail image provided and all metadata above. Return your analysi
   }
 }
 
-module.exports = { analyzeVideo };
+async function generateCompetitiveTakeaways(myVideo, myAnalysis, compVideo, compAnalysis) {
+  const prompt = `You are TubeScore, a competitive YouTube strategist. A creator is comparing their video against a competitor's video. Based on the analyses below, give them specific, actionable advice on what the competitor does better and what to steal/adapt.
+
+You MUST respond with valid JSON only — no markdown, no code fences.
+
+YOUR VIDEO:
+- Title: ${myVideo.title}
+- Channel: ${myVideo.channelTitle}
+- Views: ${myVideo.viewCount?.toLocaleString()}
+- Overall Grade: ${myAnalysis.overall_grade}
+- Title Grade: ${myAnalysis.title?.grade} | Thumbnail: ${myAnalysis.thumbnail?.grade} | Description: ${myAnalysis.description_tags?.grade} | Engagement: ${myAnalysis.engagement?.grade} | Length: ${myAnalysis.video_length?.grade}
+- Title Issues: ${(myAnalysis.title?.issues || []).join('; ')}
+- Thumbnail Issues: ${(myAnalysis.thumbnail?.issues || []).join('; ')}
+- Description Issues: ${(myAnalysis.description_tags?.issues || []).join('; ')}
+
+COMPETITOR VIDEO:
+- Title: ${compVideo.title}
+- Channel: ${compVideo.channelTitle}
+- Views: ${compVideo.viewCount?.toLocaleString()}
+- Overall Grade: ${compAnalysis.overall_grade}
+- Title Grade: ${compAnalysis.title?.grade} | Thumbnail: ${compAnalysis.thumbnail?.grade} | Description: ${compAnalysis.description_tags?.grade} | Engagement: ${compAnalysis.engagement?.grade} | Length: ${compAnalysis.video_length?.grade}
+- Title Fixes (what makes theirs work): ${(compAnalysis.title?.fixes || []).join('; ')}
+- Thumbnail Fixes: ${(compAnalysis.thumbnail?.fixes || []).join('; ')}
+- Description Fixes: ${(compAnalysis.description_tags?.fixes || []).join('; ')}
+
+Return this exact JSON structure with 3-5 competitive takeaways. Each should reference what the competitor does well and give a SPECIFIC rewrite or change the creator should make:
+{
+  "takeaways": [
+    { "insight": "What the competitor does better (1 sentence)", "action": "Specific thing to change/steal — include a rewrite or concrete example" }
+  ]
+}`;
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const text = response.content[0].text;
+  const cleaned = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return { takeaways: [] };
+  }
+}
+
+module.exports = { analyzeVideo, generateCompetitiveTakeaways };
