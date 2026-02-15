@@ -51,6 +51,11 @@ function updateNavState() {
   if (currentUser) {
     guestNav.classList.add('hidden');
     userNav.classList.remove('hidden');
+    // Show/hide agency links
+    document.querySelectorAll('.nav-agency-link').forEach(el => {
+      if (currentUser.plan === 'agency') el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    });
   } else {
     guestNav.classList.remove('hidden');
     userNav.classList.add('hidden');
@@ -158,7 +163,7 @@ function navigateTo(path) {
 
 function handleRoute() {
   const hash = window.location.hash;
-  const pages = ['page-home', 'page-history', 'page-history-detail', 'page-settings'];
+  const pages = ['page-home', 'page-history', 'page-history-detail', 'page-settings', 'page-compare', 'page-compare-detail', 'page-batch', 'page-batch-detail'];
 
   // Hide all pages
   pages.forEach(p => {
@@ -170,6 +175,30 @@ function handleRoute() {
     if (!currentUser) { navigateTo('/'); return; }
     document.getElementById('page-history').classList.remove('hidden');
     loadHistory();
+  } else if (hash.startsWith('#/compare/')) {
+    if (!currentUser) { navigateTo('/'); return; }
+    const batchId = hash.split('/').slice(2).join('/');
+    document.getElementById('page-compare-detail').classList.remove('hidden');
+    loadCompareDetail(batchId);
+  } else if (hash === '#/compare') {
+    if (!currentUser || currentUser.plan !== 'agency') {
+      navigateTo('/');
+      if (currentUser) showError('Competitor comparison requires the Agency plan.');
+      return;
+    }
+    document.getElementById('page-compare').classList.remove('hidden');
+  } else if (hash.startsWith('#/batch/')) {
+    if (!currentUser) { navigateTo('/'); return; }
+    const batchId = hash.split('/').slice(2).join('/');
+    document.getElementById('page-batch-detail').classList.remove('hidden');
+    loadBatchDetail(batchId);
+  } else if (hash === '#/batch') {
+    if (!currentUser || currentUser.plan !== 'agency') {
+      navigateTo('/');
+      if (currentUser) showError('Batch analysis requires the Agency plan.');
+      return;
+    }
+    document.getElementById('page-batch').classList.remove('hidden');
   } else if (hash.startsWith('#/history/')) {
     if (!currentUser) { navigateTo('/'); return; }
     const id = hash.split('/')[2];
@@ -386,19 +415,43 @@ async function loadHistory(page) {
     }
 
     empty.classList.add('hidden');
-    grid.innerHTML = data.scans.map(scan => `
-      <div class="history-card" onclick="navigateTo('/history/${scan.id}')">
-        <img src="${escapeHtml(scan.thumbnail_url || '')}" alt="" class="history-thumb">
-        <div class="history-info">
-          <h4 class="history-title">${escapeHtml(scan.video_title)}</h4>
-          <p class="history-channel">${escapeHtml(scan.channel_title)}</p>
-          <div class="history-meta">
-            <span class="grade ${gradeClass(scan.overall_grade)}" style="width:32px;height:32px;font-size:15px;">${escapeHtml(scan.overall_grade || '?')}</span>
-            <span class="history-date">${new Date(scan.created_at + 'Z').toLocaleDateString()}</span>
+
+    // Group compare/batch entries — show one card per batch_id
+    const seen = new Set();
+    const displayScans = [];
+    for (const scan of data.scans) {
+      if (scan.batch_id) {
+        if (seen.has(scan.batch_id)) continue;
+        seen.add(scan.batch_id);
+      }
+      displayScans.push(scan);
+    }
+
+    grid.innerHTML = displayScans.map(scan => {
+      let onclick = `navigateTo('/history/${scan.id}')`;
+      let badgeHTML = '';
+      if (scan.scan_type === 'compare' && scan.batch_id) {
+        onclick = `navigateTo('/compare/${scan.batch_id}')`;
+        badgeHTML = '<span class="scan-type-badge scan-type-compare">Compare</span>';
+      } else if (scan.scan_type === 'batch' && scan.batch_id) {
+        onclick = `navigateTo('/batch/${scan.batch_id}')`;
+        badgeHTML = '<span class="scan-type-badge scan-type-batch">Batch</span>';
+      }
+      return `
+        <div class="history-card" onclick="${onclick}">
+          <img src="${escapeHtml(scan.thumbnail_url || '')}" alt="" class="history-thumb">
+          <div class="history-info">
+            <h4 class="history-title">${escapeHtml(scan.video_title)}</h4>
+            <p class="history-channel">${escapeHtml(scan.channel_title)}</p>
+            <div class="history-meta">
+              <span class="grade ${gradeClass(scan.overall_grade)}" style="width:32px;height:32px;font-size:15px;">${escapeHtml(scan.overall_grade || '?')}</span>
+              ${badgeHTML}
+              <span class="history-date">${new Date(scan.created_at + 'Z').toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     // Pagination
     if (data.totalPages > 1) {
@@ -496,6 +549,366 @@ function buildScorecardHTML(video, analysis) {
     </div>
   `;
 }
+
+// ── Compare ──
+async function handleCompare() {
+  const myUrl = document.getElementById('compare-my-url').value.trim();
+  const compUrl = document.getElementById('compare-comp-url').value.trim();
+  const btn = document.getElementById('compare-btn');
+  const loading = document.getElementById('compare-loading');
+  const errorEl = document.getElementById('compare-error');
+  const results = document.getElementById('compare-results');
+
+  if (!myUrl || !compUrl) {
+    errorEl.textContent = 'Please paste both YouTube URLs.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  errorEl.classList.add('hidden');
+  results.classList.add('hidden');
+  loading.classList.remove('hidden');
+  btn.disabled = true;
+
+  // Animate steps
+  setCompareStep('fetch');
+
+  try {
+    const res = await fetch('/api/compare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ myUrl, competitorUrl: compUrl }),
+    });
+
+    setCompareStep('ai');
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.requiresAgency) {
+        loading.classList.add('hidden');
+        errorEl.textContent = 'This feature requires the Agency plan. Upgrade in Settings.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      throw new Error(data.error || 'Comparison failed.');
+    }
+
+    setCompareStep('compare');
+    await delay(300);
+
+    loading.classList.add('hidden');
+    renderCompareResults(data);
+    results.classList.remove('hidden');
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    loading.classList.add('hidden');
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setCompareStep(active) {
+  const steps = ['fetch', 'ai', 'compare'];
+  const idx = steps.indexOf(active);
+  steps.forEach((s, i) => {
+    const el = document.getElementById(`compare-step-${s}`);
+    el.classList.remove('active', 'done');
+    if (i < idx) el.classList.add('done');
+    else if (i === idx) el.classList.add('active');
+  });
+}
+
+function categoryLabel(key) {
+  const labels = { title: 'Title', thumbnail: 'Thumbnail', description_tags: 'Description & Tags', engagement: 'Engagement', video_length: 'Video Length' };
+  return labels[key] || key;
+}
+
+function renderCompareResults(data) {
+  const container = document.getElementById('compare-results');
+  const { myVideo, competitor, comparison } = data;
+
+  const summaryHTML = `
+    <div class="compare-summary">
+      <div class="compare-summary-item compare-win">
+        <span class="compare-summary-count">${comparison.wins.length}</span>
+        <span class="compare-summary-label">You Win</span>
+      </div>
+      <div class="compare-summary-item compare-tie">
+        <span class="compare-summary-count">${comparison.ties.length}</span>
+        <span class="compare-summary-label">Tied</span>
+      </div>
+      <div class="compare-summary-item compare-loss">
+        <span class="compare-summary-count">${comparison.losses.length}</span>
+        <span class="compare-summary-label">They Win</span>
+      </div>
+    </div>
+    <div class="compare-breakdown">
+      ${['wins', 'losses', 'ties'].map(type => comparison[type].map(entry => `
+        <div class="compare-row compare-row-${type === 'wins' ? 'win' : type === 'losses' ? 'loss' : 'tie'}">
+          <span class="compare-row-category">${categoryLabel(entry.category)}</span>
+          <span class="grade ${gradeClass(entry.myGrade)}" style="width:32px;height:32px;font-size:14px;">${escapeHtml(entry.myGrade)}</span>
+          <span class="compare-row-vs">vs</span>
+          <span class="grade ${gradeClass(entry.compGrade)}" style="width:32px;height:32px;font-size:14px;">${escapeHtml(entry.compGrade)}</span>
+          <span class="compare-row-result">${type === 'wins' ? 'You win' : type === 'losses' ? 'They win' : 'Tie'}</span>
+        </div>
+      `).join('')).join('')}
+    </div>
+  `;
+
+  container.innerHTML = `
+    ${summaryHTML}
+    <div class="compare-scorecards">
+      <div class="compare-scorecard">
+        <h3 class="compare-scorecard-label">Your Video</h3>
+        ${buildScorecardHTML(myVideo.video, myVideo.analysis)}
+      </div>
+      <div class="compare-scorecard">
+        <h3 class="compare-scorecard-label">Competitor</h3>
+        ${buildScorecardHTML(competitor.video, competitor.analysis)}
+      </div>
+    </div>
+  `;
+}
+
+async function loadCompareDetail(batchId) {
+  const container = document.getElementById('compare-detail-content');
+  try {
+    const res = await fetch(`/api/history/batch/${batchId}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    if (data.scanType !== 'compare' || data.scans.length < 2) throw new Error();
+
+    const myVideo = data.scans[0];
+    const competitor = data.scans[1];
+
+    // Rebuild comparison deterministically
+    const categories = ['title', 'thumbnail', 'description_tags', 'engagement', 'video_length'];
+    const gradeValue = g => ({ 'A+': 13, 'A': 12, 'A-': 11, 'B+': 10, 'B': 9, 'B-': 8, 'C+': 7, 'C': 6, 'C-': 5, 'D+': 4, 'D': 3, 'D-': 2, 'F': 1 }[g] || 0);
+    const comparison = { wins: [], losses: [], ties: [] };
+    categories.forEach(cat => {
+      const myGrade = myVideo.analysis[cat]?.grade;
+      const compGrade = competitor.analysis[cat]?.grade;
+      const myVal = gradeValue(myGrade);
+      const compVal = gradeValue(compGrade);
+      const entry = { category: cat, myGrade, compGrade };
+      if (myVal > compVal) comparison.wins.push(entry);
+      else if (myVal < compVal) comparison.losses.push(entry);
+      else comparison.ties.push(entry);
+    });
+
+    const fakeData = {
+      myVideo: { video: myVideo.video, analysis: myVideo.analysis },
+      competitor: { video: competitor.video, analysis: competitor.analysis },
+      comparison,
+    };
+
+    // Reuse the same render
+    container.innerHTML = '<div id="compare-detail-results"></div>';
+    const resultsDiv = document.getElementById('compare-detail-results');
+
+    // Build same HTML as renderCompareResults
+    const summaryHTML = `
+      <div class="compare-summary">
+        <div class="compare-summary-item compare-win">
+          <span class="compare-summary-count">${comparison.wins.length}</span>
+          <span class="compare-summary-label">You Win</span>
+        </div>
+        <div class="compare-summary-item compare-tie">
+          <span class="compare-summary-count">${comparison.ties.length}</span>
+          <span class="compare-summary-label">Tied</span>
+        </div>
+        <div class="compare-summary-item compare-loss">
+          <span class="compare-summary-count">${comparison.losses.length}</span>
+          <span class="compare-summary-label">They Win</span>
+        </div>
+      </div>
+      <div class="compare-breakdown">
+        ${['wins', 'losses', 'ties'].map(type => comparison[type].map(entry => `
+          <div class="compare-row compare-row-${type === 'wins' ? 'win' : type === 'losses' ? 'loss' : 'tie'}">
+            <span class="compare-row-category">${categoryLabel(entry.category)}</span>
+            <span class="grade ${gradeClass(entry.myGrade)}" style="width:32px;height:32px;font-size:14px;">${escapeHtml(entry.myGrade)}</span>
+            <span class="compare-row-vs">vs</span>
+            <span class="grade ${gradeClass(entry.compGrade)}" style="width:32px;height:32px;font-size:14px;">${escapeHtml(entry.compGrade)}</span>
+            <span class="compare-row-result">${type === 'wins' ? 'You win' : type === 'losses' ? 'They win' : 'Tie'}</span>
+          </div>
+        `).join('')).join('')}
+      </div>
+    `;
+
+    resultsDiv.innerHTML = `
+      <h2>Competitor Comparison</h2>
+      <p class="section-sub" style="margin-bottom:24px;">Compared on ${new Date(myVideo.created_at + 'Z').toLocaleDateString()}</p>
+      ${summaryHTML}
+      <div class="compare-scorecards">
+        <div class="compare-scorecard">
+          <h3 class="compare-scorecard-label">Your Video</h3>
+          ${buildScorecardHTML(fakeData.myVideo.video, fakeData.myVideo.analysis)}
+        </div>
+        <div class="compare-scorecard">
+          <h3 class="compare-scorecard-label">Competitor</h3>
+          ${buildScorecardHTML(fakeData.competitor.video, fakeData.competitor.analysis)}
+        </div>
+      </div>
+    `;
+  } catch {
+    container.innerHTML = '<p style="color: var(--text-muted);">Failed to load comparison details.</p>';
+  }
+}
+
+// ── Batch ──
+async function handleBatch() {
+  const textarea = document.getElementById('batch-urls');
+  const btn = document.getElementById('batch-btn');
+  const loading = document.getElementById('batch-loading');
+  const errorEl = document.getElementById('batch-error');
+  const results = document.getElementById('batch-results');
+
+  const urls = textarea.value.split('\n').map(u => u.trim()).filter(u => u);
+
+  if (urls.length < 2 || urls.length > 10) {
+    errorEl.textContent = 'Please provide between 2 and 10 YouTube URLs (one per line).';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  errorEl.classList.add('hidden');
+  results.classList.add('hidden');
+  loading.classList.remove('hidden');
+  btn.disabled = true;
+
+  document.getElementById('batch-progress-fill').style.width = '0%';
+  document.getElementById('batch-progress-text').textContent = `0 / ${urls.length} videos analyzed`;
+
+  try {
+    const res = await fetch('/api/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.requiresAgency) {
+        loading.classList.add('hidden');
+        errorEl.textContent = 'This feature requires the Agency plan. Upgrade in Settings.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+      throw new Error(data.error || 'Batch analysis failed.');
+    }
+
+    document.getElementById('batch-progress-fill').style.width = '100%';
+    document.getElementById('batch-progress-text').textContent = `${data.summary.total} / ${data.summary.total} videos analyzed`;
+    await delay(400);
+
+    loading.classList.add('hidden');
+    renderBatchResults(data);
+    results.classList.remove('hidden');
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    loading.classList.add('hidden');
+    errorEl.textContent = err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderBatchResults(data) {
+  const container = document.getElementById('batch-results');
+  const { results, summary, batchId } = data;
+
+  const summaryHTML = `
+    <div class="batch-summary-bar">
+      <span class="batch-summary-total">${summary.total} videos analyzed</span>
+      <span class="batch-summary-success">${summary.succeeded} succeeded</span>
+      ${summary.failed > 0 ? `<span class="batch-summary-failed">${summary.failed} failed</span>` : ''}
+    </div>
+  `;
+
+  const cardsHTML = results.map((r, i) => {
+    if (r.status === 'error') {
+      return `
+        <div class="history-card batch-card batch-card-error">
+          <div class="history-info">
+            <h4 class="history-title">Video ${i + 1} — Failed</h4>
+            <p class="history-channel" style="color:var(--grade-f);">${escapeHtml(r.error)}</p>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="history-card batch-card" onclick="navigateTo('/history/${r.video.id}')">
+        <img src="${escapeHtml(r.video.thumbnail || '')}" alt="" class="history-thumb">
+        <div class="history-info">
+          <h4 class="history-title">${escapeHtml(r.video.title)}</h4>
+          <p class="history-channel">${escapeHtml(r.video.channelTitle)}</p>
+          <div class="history-meta">
+            <span class="grade ${gradeClass(r.analysis.overall_grade)}" style="width:32px;height:32px;font-size:15px;">${escapeHtml(r.analysis.overall_grade || '?')}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    ${summaryHTML}
+    <div class="history-grid">${cardsHTML}</div>
+  `;
+}
+
+async function loadBatchDetail(batchId) {
+  const container = document.getElementById('batch-detail-content');
+  try {
+    const res = await fetch(`/api/history/batch/${batchId}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    const summaryHTML = `
+      <h2>Batch Analysis</h2>
+      <p class="section-sub" style="margin-bottom:24px;">Analyzed on ${new Date(data.scans[0].created_at + 'Z').toLocaleDateString()} &mdash; ${data.scans.length} videos</p>
+      <div class="batch-summary-bar">
+        <span class="batch-summary-total">${data.scans.length} videos analyzed</span>
+      </div>
+    `;
+
+    const cardsHTML = data.scans.map(scan => `
+      <div class="history-card batch-card" onclick="navigateTo('/history/${scan.id}')">
+        <img src="${escapeHtml(scan.video?.thumbnail || scan.thumbnail_url || '')}" alt="" class="history-thumb">
+        <div class="history-info">
+          <h4 class="history-title">${escapeHtml(scan.video?.title || scan.video_title)}</h4>
+          <p class="history-channel">${escapeHtml(scan.video?.channelTitle || scan.channel_title)}</p>
+          <div class="history-meta">
+            <span class="grade ${gradeClass(scan.overall_grade)}" style="width:32px;height:32px;font-size:15px;">${escapeHtml(scan.overall_grade || '?')}</span>
+            <span class="history-date">${new Date(scan.created_at + 'Z').toLocaleDateString()}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    container.innerHTML = `
+      ${summaryHTML}
+      <div class="history-grid">${cardsHTML}</div>
+    `;
+  } catch {
+    container.innerHTML = '<p style="color: var(--text-muted);">Failed to load batch details.</p>';
+  }
+}
+
+// ── Batch URL counter ──
+document.addEventListener('DOMContentLoaded', () => {
+  const batchTextarea = document.getElementById('batch-urls');
+  if (batchTextarea) {
+    batchTextarea.addEventListener('input', () => {
+      const count = batchTextarea.value.split('\n').map(u => u.trim()).filter(u => u).length;
+      document.getElementById('batch-count').textContent = Math.min(count, 10);
+    });
+  }
+});
 
 // ── Settings ──
 async function loadSettings() {

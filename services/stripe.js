@@ -10,7 +10,7 @@ const PLANS = {
   },
   agency: {
     name: 'TubeScore Agency',
-    description: 'Unlimited scans + competitor analysis + multi-channel support',
+    description: 'Unlimited scans + competitor comparison + batch analysis',
     amount: 2900,
   },
 };

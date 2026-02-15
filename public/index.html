@@ -19,6 +19,8 @@
           <button class="nav-btn nav-btn-primary" onclick="showAuthModal('signup')">Sign Up</button>
         </div>
         <div id="nav-user" class="hidden">
+          <a href="#/compare" class="nav-link nav-agency-link hidden" onclick="navigateTo('/compare'); return false;">Compare</a>
+          <a href="#/batch" class="nav-link nav-agency-link hidden" onclick="navigateTo('/batch'); return false;">Batch</a>
           <a href="#/history" class="nav-link" onclick="navigateTo('/history'); return false;">History</a>
           <a href="#/settings" class="nav-link" onclick="navigateTo('/settings'); return false;">Settings</a>
           <button class="nav-btn nav-btn-outline" onclick="handleLogout()">Log Out</button>
@@ -144,8 +146,8 @@
             <li>Full scorecard with grades</li>
             <li>Specific actionable fixes</li>
             <li>Quick wins section</li>
-            <li class="dimmed">Competitor analysis</li>
-            <li class="dimmed">Multi-channel support</li>
+            <li class="dimmed">Competitor comparison</li>
+            <li class="dimmed">Batch analysis</li>
           </ul>
           <a href="#" class="btn-secondary" style="width:100%;text-align:center;" onclick="document.getElementById('url-input').focus(); return false;">Try It Free</a>
         </div>
@@ -159,8 +161,8 @@
             <li>Full scorecard with grades</li>
             <li>Specific actionable fixes</li>
             <li>Quick wins section</li>
-            <li class="dimmed">Competitor analysis</li>
-            <li class="dimmed">Multi-channel support</li>
+            <li class="dimmed">Competitor comparison</li>
+            <li class="dimmed">Batch analysis</li>
           </ul>
           <button class="btn-primary btn-primary-full" onclick="handleUpgrade('pro')">Upgrade to Pro</button>
         </div>
@@ -174,8 +176,8 @@
             <li>Full scorecard with grades</li>
             <li>Specific actionable fixes</li>
             <li>Quick wins section</li>
-            <li>Competitor analysis</li>
-            <li>Multi-channel support</li>
+            <li>Competitor comparison</li>
+            <li>Batch analysis (up to 10)</li>
           </ul>
           <button class="btn-gold" onclick="handleUpgrade('agency')">Go Agency</button>
         </div>
@@ -202,6 +204,76 @@
     <div class="page-container">
       <button class="btn-back" onclick="navigateTo('/history')">&#8592; Back to History</button>
       <div id="history-scorecard"></div>
+    </div>
+  </section>
+
+  <!-- Compare Page -->
+  <section id="page-compare" class="page-section hidden">
+    <div class="page-container">
+      <h2>Competitor Comparison</h2>
+      <p class="section-sub">See how your video stacks up against a competitor's.</p>
+      <div class="compare-inputs">
+        <div class="compare-input-group">
+          <label>Your Video</label>
+          <input type="text" id="compare-my-url" placeholder="Paste your YouTube video URL..." autocomplete="off">
+        </div>
+        <div class="compare-vs">VS</div>
+        <div class="compare-input-group">
+          <label>Competitor Video</label>
+          <input type="text" id="compare-comp-url" placeholder="Paste competitor's YouTube video URL..." autocomplete="off">
+        </div>
+      </div>
+      <button class="btn-gold compare-btn" id="compare-btn" onclick="handleCompare()">Compare Videos</button>
+      <div id="compare-loading" class="compare-loading hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Comparing videos...</p>
+        <div class="progress-steps">
+          <div class="step active" id="compare-step-fetch">Fetching video data</div>
+          <div class="step" id="compare-step-ai">Running AI analysis</div>
+          <div class="step" id="compare-step-compare">Building comparison</div>
+        </div>
+      </div>
+      <div id="compare-error" class="error-banner hidden"></div>
+      <div id="compare-results" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- Compare Detail (from history) -->
+  <section id="page-compare-detail" class="page-section hidden">
+    <div class="page-container">
+      <button class="btn-back" onclick="navigateTo('/history')">&#8592; Back to History</button>
+      <div id="compare-detail-content"></div>
+    </div>
+  </section>
+
+  <!-- Batch Page -->
+  <section id="page-batch" class="page-section hidden">
+    <div class="page-container">
+      <h2>Batch Analysis</h2>
+      <p class="section-sub">Analyze up to 10 videos at once.</p>
+      <div class="batch-input-area">
+        <textarea id="batch-urls" placeholder="Paste YouTube URLs, one per line..." rows="6"></textarea>
+        <div class="batch-url-count"><span id="batch-count">0</span> / 10 URLs</div>
+      </div>
+      <button class="btn-gold batch-btn" id="batch-btn" onclick="handleBatch()">Analyze All</button>
+      <div id="batch-loading" class="batch-loading hidden">
+        <div class="spinner"></div>
+        <p class="loading-text">Analyzing videos...</p>
+        <div class="batch-progress-bar">
+          <div class="batch-progress-fill" id="batch-progress-fill"></div>
+        </div>
+        <p class="batch-progress-text" id="batch-progress-text">0 / 0 videos analyzed</p>
+      </div>
+      <div id="batch-error" class="error-banner hidden"></div>
+      <div id="batch-results" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- Batch Detail (from history) -->
+  <section id="page-batch-detail" class="page-section hidden">
+    <div class="page-container">
+      <button class="btn-back" onclick="navigateTo('/history')">&#8592; Back to History</button>
+      <div id="batch-detail-content"></div>
     </div>
   </section>
 

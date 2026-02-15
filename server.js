@@ -68,6 +68,10 @@ db.exec(`
   )
 `);
 
+// ── Idempotent migration: add scan_type and batch_id columns ──
+try { db.exec("ALTER TABLE scan_history ADD COLUMN scan_type TEXT DEFAULT 'single'"); } catch {}
+try { db.exec("ALTER TABLE scan_history ADD COLUMN batch_id TEXT"); } catch {}
+
 const FREE_LIMIT = 3;
 const SALT_ROUNDS = 10;
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -138,6 +142,17 @@ function requireAuth(req, res, next) {
 function softAuth(req, res, next) {
   const token = req.cookies?.session;
   req.user = getUserFromSession(token);
+  next();
+}
+
+function requireAgency(req, res, next) {
+  const token = req.cookies?.session;
+  const user = getUserFromSession(token);
+  if (!user) return res.status(401).json({ error: 'Please log in.' });
+  if (user.plan !== 'agency') {
+    return res.status(403).json({ error: 'This feature requires the Agency plan.', requiresAgency: true });
+  }
+  req.user = user;
   next();
 }
 
@@ -422,7 +437,7 @@ app.get('/api/history', requireAuth, (req, res) => {
   const offset = (page - 1) * limit;
 
   const rows = db.prepare(`
-    SELECT id, video_id, video_title, channel_title, thumbnail_url, overall_grade, created_at
+    SELECT id, video_id, video_title, channel_title, thumbnail_url, overall_grade, scan_type, batch_id, created_at
     FROM scan_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?
   `).all(req.user.id, limit, offset);
 
@@ -445,6 +460,160 @@ app.get('/api/history/:id', requireAuth, (req, res) => {
     analysis: JSON.parse(row.analysis_json),
     video: JSON.parse(row.video_stats_json),
   });
+});
+
+// ── Compare route (Agency only) ──
+app.post('/api/compare', requireAgency, async (req, res) => {
+  try {
+    const { myUrl, competitorUrl } = req.body;
+    if (!myUrl || !competitorUrl) return res.status(400).json({ error: 'Two YouTube URLs are required.' });
+
+    const myVideoId = extractVideoId(myUrl);
+    const compVideoId = extractVideoId(competitorUrl);
+    if (!myVideoId || !compVideoId) return res.status(400).json({ error: 'Invalid YouTube URL(s). Please paste valid video links.' });
+    if (myVideoId === compVideoId) return res.status(400).json({ error: 'Please provide two different videos to compare.' });
+
+    // Fetch YouTube data for both in parallel
+    const [myVideoData, compVideoData] = await Promise.all([
+      getVideoData(myVideoId),
+      getVideoData(compVideoId),
+    ]);
+    const [myChannelData, compChannelData] = await Promise.all([
+      getChannelData(myVideoData.channelId),
+      getChannelData(compVideoData.channelId),
+    ]);
+
+    // Run AI analysis for both in parallel
+    const [myAnalysis, compAnalysis] = await Promise.all([
+      analyzeVideo(myVideoData, myChannelData),
+      analyzeVideo(compVideoData, compChannelData),
+    ]);
+
+    const buildVideoInfo = (vd, cd) => ({
+      id: vd.id,
+      title: vd.title,
+      channelTitle: vd.channelTitle,
+      thumbnail: vd.thumbnails.high?.url || vd.thumbnails.default?.url,
+      viewCount: vd.viewCount,
+      likeCount: vd.likeCount,
+      commentCount: vd.commentCount,
+      subscriberCount: cd.subscriberCount,
+    });
+
+    const myVideo = { video: buildVideoInfo(myVideoData, myChannelData), analysis: myAnalysis };
+    const competitor = { video: buildVideoInfo(compVideoData, compChannelData), analysis: compAnalysis };
+
+    // Compute comparison deterministically
+    const categories = ['title', 'thumbnail', 'description_tags', 'engagement', 'video_length'];
+    const gradeValue = g => ({ 'A+': 13, 'A': 12, 'A-': 11, 'B+': 10, 'B': 9, 'B-': 8, 'C+': 7, 'C': 6, 'C-': 5, 'D+': 4, 'D': 3, 'D-': 2, 'F': 1 }[g] || 0);
+
+    const comparison = { wins: [], losses: [], ties: [] };
+    categories.forEach(cat => {
+      const myGrade = myAnalysis[cat]?.grade;
+      const compGrade = compAnalysis[cat]?.grade;
+      const myVal = gradeValue(myGrade);
+      const compVal = gradeValue(compGrade);
+      const entry = { category: cat, myGrade, compGrade };
+      if (myVal > compVal) comparison.wins.push(entry);
+      else if (myVal < compVal) comparison.losses.push(entry);
+      else comparison.ties.push(entry);
+    });
+
+    // Save both scans with shared batch_id
+    const batchId = crypto.randomUUID();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    const insertStmt = db.prepare(`
+      INSERT INTO scan_history (user_id, ip, video_id, video_title, channel_title, thumbnail_url, overall_grade, analysis_json, video_stats_json, scan_type, batch_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'compare', ?)
+    `);
+    insertStmt.run(req.user.id, ip, myVideoData.id, myVideoData.title, myVideoData.channelTitle, myVideo.video.thumbnail, myAnalysis.overall_grade, JSON.stringify(myAnalysis), JSON.stringify(myVideo.video), batchId);
+    insertStmt.run(req.user.id, ip, compVideoData.id, compVideoData.title, compVideoData.channelTitle, competitor.video.thumbnail, compAnalysis.overall_grade, JSON.stringify(compAnalysis), JSON.stringify(competitor.video), batchId);
+
+    res.json({ batchId, myVideo, competitor, comparison });
+  } catch (err) {
+    console.error('Compare error:', err);
+    res.status(500).json({ error: err.message || 'Comparison failed. Please try again.' });
+  }
+});
+
+// ── Batch route (Agency only) ──
+app.post('/api/batch', requireAgency, async (req, res) => {
+  try {
+    req.setTimeout(180000); // 3 min safety for up to 10 videos
+
+    const { urls } = req.body;
+    if (!Array.isArray(urls) || urls.length < 2 || urls.length > 10) {
+      return res.status(400).json({ error: 'Please provide between 2 and 10 YouTube URLs.' });
+    }
+
+    // Extract and validate video IDs
+    const videoIds = urls.map(u => extractVideoId(u));
+    const invalid = videoIds.findIndex(id => !id);
+    if (invalid !== -1) return res.status(400).json({ error: `Invalid YouTube URL at line ${invalid + 1}.` });
+
+    const uniqueIds = new Set(videoIds);
+    if (uniqueIds.size !== videoIds.length) return res.status(400).json({ error: 'Duplicate videos detected. Please provide unique URLs.' });
+
+    const batchId = crypto.randomUUID();
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const results = [];
+    let succeeded = 0;
+    let failed = 0;
+
+    // Process sequentially to avoid API rate limits
+    for (const videoId of videoIds) {
+      try {
+        const videoData = await getVideoData(videoId);
+        const channelData = await getChannelData(videoData.channelId);
+        const analysis = await analyzeVideo(videoData, channelData);
+
+        const videoInfo = {
+          id: videoData.id,
+          title: videoData.title,
+          channelTitle: videoData.channelTitle,
+          thumbnail: videoData.thumbnails.high?.url || videoData.thumbnails.default?.url,
+          viewCount: videoData.viewCount,
+          likeCount: videoData.likeCount,
+          commentCount: videoData.commentCount,
+          subscriberCount: channelData.subscriberCount,
+        };
+
+        db.prepare(`
+          INSERT INTO scan_history (user_id, ip, video_id, video_title, channel_title, thumbnail_url, overall_grade, analysis_json, video_stats_json, scan_type, batch_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'batch', ?)
+        `).run(req.user.id, ip, videoData.id, videoData.title, videoData.channelTitle, videoInfo.thumbnail, analysis.overall_grade, JSON.stringify(analysis), JSON.stringify(videoInfo), batchId);
+
+        results.push({ status: 'success', video: videoInfo, analysis });
+        succeeded++;
+      } catch (err) {
+        results.push({ status: 'error', videoId, error: err.message || 'Analysis failed' });
+        failed++;
+      }
+    }
+
+    res.json({ batchId, results, summary: { total: videoIds.length, succeeded, failed } });
+  } catch (err) {
+    console.error('Batch error:', err);
+    res.status(500).json({ error: err.message || 'Batch analysis failed. Please try again.' });
+  }
+});
+
+// ── Batch/Compare detail route ──
+app.get('/api/history/batch/:batchId', requireAuth, (req, res) => {
+  const rows = db.prepare(`
+    SELECT * FROM scan_history WHERE batch_id = ? AND user_id = ? ORDER BY created_at ASC
+  `).all(req.params.batchId, req.user.id);
+
+  if (rows.length === 0) return res.status(404).json({ error: 'Batch not found.' });
+
+  const scans = rows.map(row => ({
+    ...row,
+    analysis: JSON.parse(row.analysis_json),
+    video: JSON.parse(row.video_stats_json),
+  }));
+
+  res.json({ batchId: req.params.batchId, scanType: rows[0].scan_type, scans });
 });
 
 // ── Account routes ──

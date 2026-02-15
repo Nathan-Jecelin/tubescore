@@ -1259,6 +1259,281 @@ a { color: var(--accent); text-decoration: none; }
   border-top: 1px solid var(--border);
 }
 
+/* ── Compare Page ── */
+.compare-inputs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.compare-input-group {
+  flex: 1;
+}
+
+.compare-input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.compare-input-group input {
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.compare-input-group input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.compare-vs {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-muted);
+  padding-top: 22px;
+  flex-shrink: 0;
+}
+
+.compare-btn, .batch-btn {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto 32px;
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.compare-loading, .batch-loading {
+  text-align: center;
+  padding: 40px 24px;
+}
+
+/* ── Compare Summary ── */
+.compare-summary {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.compare-summary-item {
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 32px;
+  min-width: 120px;
+}
+
+.compare-summary-count {
+  display: block;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.compare-summary-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compare-win .compare-summary-count { color: var(--grade-a); }
+.compare-tie .compare-summary-count { color: var(--text-muted); }
+.compare-loss .compare-summary-count { color: var(--grade-f); }
+
+.compare-win { border-color: rgba(34, 197, 94, 0.3); }
+.compare-loss { border-color: rgba(239, 68, 68, 0.3); }
+
+/* ── Compare Breakdown ── */
+.compare-breakdown {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 36px;
+}
+
+.compare-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+}
+
+.compare-row-category {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.compare-row-vs {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.compare-row-result {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 72px;
+  text-align: right;
+}
+
+.compare-row-win .compare-row-result { color: var(--grade-a); }
+.compare-row-loss .compare-row-result { color: var(--grade-f); }
+.compare-row-tie .compare-row-result { color: var(--text-muted); }
+
+.compare-row-win { border-left: 3px solid var(--grade-a); }
+.compare-row-loss { border-left: 3px solid var(--grade-f); }
+.compare-row-tie { border-left: 3px solid var(--border); }
+
+/* ── Compare Scorecards Side-by-Side ── */
+.compare-scorecards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.compare-scorecard-label {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+/* ── Batch Page ── */
+.batch-input-area {
+  margin-bottom: 24px;
+}
+
+.batch-input-area textarea {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  min-height: 140px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.batch-input-area textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.batch-url-count {
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* ── Batch Progress Bar ── */
+.batch-progress-bar {
+  width: 100%;
+  max-width: 400px;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 4px;
+  margin: 16px auto;
+  overflow: hidden;
+}
+
+.batch-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #e6a817);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+
+.batch-progress-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Batch Summary Bar ── */
+.batch-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+}
+
+.batch-summary-total {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.batch-summary-success {
+  font-size: 13px;
+  color: var(--grade-a);
+  font-weight: 600;
+}
+
+.batch-summary-failed {
+  font-size: 13px;
+  color: var(--grade-f);
+  font-weight: 600;
+}
+
+.batch-card-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  opacity: 0.7;
+}
+
+/* ── Scan Type Badges (History) ── */
+.scan-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scan-type-compare {
+  background: rgba(99, 91, 255, 0.15);
+  color: var(--accent);
+}
+
+.scan-type-batch {
+  background: rgba(245, 197, 66, 0.15);
+  color: var(--gold);
+}
+
 /* ── Utilities ── */
 .hidden { display: none !important; }
 
@@ -1313,5 +1588,27 @@ a { color: var(--accent); text-decoration: none; }
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+
+  .compare-inputs {
+    flex-direction: column;
+  }
+
+  .compare-vs {
+    padding-top: 0;
+  }
+
+  .compare-scorecards {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-summary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .compare-row {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }
