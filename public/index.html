@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TubeScore — Get More Views on YouTube</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="logo" onclick="navigateTo('/'); return false;">Tube<span>Score</span></a>
+      <div class="nav-links">
+        <div id="nav-guest">
+          <a href="#pricing" class="nav-link">Pricing</a>
+          <button class="nav-btn nav-btn-outline" onclick="showAuthModal('login')">Log In</button>
+          <button class="nav-btn nav-btn-primary" onclick="showAuthModal('signup')">Sign Up</button>
+        </div>
+        <div id="nav-user" class="hidden">
+          <a href="#/history" class="nav-link" onclick="navigateTo('/history'); return false;">History</a>
+          <a href="#/settings" class="nav-link" onclick="navigateTo('/settings'); return false;">Settings</a>
+          <button class="nav-btn nav-btn-outline" onclick="handleLogout()">Log Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Home -->
+  <div id="page-home">
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Find out why your videos <span class="highlight">aren't getting views</span></h1>
+      <p class="hero-sub">Paste a YouTube URL. Get an instant AI-powered scorecard with specific fixes to boost your views and engagement.</p>
+      <div class="input-row">
+        <input type="text" id="url-input" placeholder="Paste a YouTube video URL..." autocomplete="off">
+        <button id="analyze-btn" onclick="handleAnalyze()">Analyze</button>
+      </div>
+      <p class="hint">Free — no signup required. 3 scans/month.</p>
+      <div class="social-proof">
+        <div class="proof-item"><span class="proof-num">2,400+</span> videos analyzed</div>
+        <div class="proof-item"><span class="proof-num">850+</span> creators growing</div>
+      </div>
+    </section>
+
+    <!-- Loading State -->
+    <section id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p class="loading-text">Analyzing your video...</p>
+      <div class="progress-steps">
+        <div class="step active" id="step-fetch">Fetching video data</div>
+        <div class="step" id="step-ai">Running AI analysis</div>
+        <div class="step" id="step-score">Building scorecard</div>
+      </div>
+    </section>
+
+    <!-- Error State -->
+    <div id="error-banner" class="error-banner hidden"></div>
+
+    <!-- Scorecard -->
+    <section id="scorecard" class="scorecard hidden">
+      <div class="score-header">
+        <img id="sc-thumb" class="sc-thumb" src="" alt="Video thumbnail">
+        <div class="score-header-info">
+          <h2 id="sc-title"></h2>
+          <p id="sc-channel" class="sc-channel"></p>
+          <div class="sc-stats">
+            <span id="sc-views"></span>
+            <span id="sc-likes"></span>
+            <span id="sc-comments"></span>
+          </div>
+        </div>
+        <div class="overall-grade-box">
+          <div class="overall-label">Overall</div>
+          <div id="sc-overall" class="overall-grade"></div>
+        </div>
+      </div>
+
+      <!-- Category Cards -->
+      <div class="categories" id="categories"></div>
+
+      <!-- Quick Wins -->
+      <div class="quick-wins" id="quick-wins">
+        <h3>Quick Wins</h3>
+        <div class="wins-list" id="wins-list"></div>
+      </div>
+
+      <button class="btn-secondary" onclick="resetApp()">Analyze Another Video</button>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+      <h2>How It Works</h2>
+      <p class="section-sub">Three steps to better-performing videos.</p>
+      <div class="steps">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Paste Your URL</h3>
+          <p>Drop any YouTube video link into the analyzer.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>AI Scans Everything</h3>
+          <p>We analyze your title, thumbnail, description, tags, engagement, and video length.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Get Specific Fixes</h3>
+          <p>Not vague advice — exact rewrites and changes you can make today.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sample Scorecard Preview -->
+    <section class="sample-preview">
+      <h2>See What You Get</h2>
+      <p class="section-sub">Real grades. Real fixes. Not generic tips.</p>
+      <div class="sample-card">
+        <div class="sample-grades">
+          <div class="sample-grade"><span class="grade grade-a">A</span> Video Length</div>
+          <div class="sample-grade"><span class="grade grade-b">B</span> Title</div>
+          <div class="sample-grade"><span class="grade grade-c">C</span> Thumbnail</div>
+          <div class="sample-grade"><span class="grade grade-d">D</span> Description & Tags</div>
+        </div>
+        <div class="sample-fix">
+          <strong>Quick Win:</strong> "Add timestamps to your description — videos with chapters get 20% more watch time from search."
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+      <h2>Simple Pricing</h2>
+      <p class="section-sub">Start free. Upgrade when you're ready to grow faster.</p>
+      <div class="pricing-cards">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <p class="pricing-tier-desc">Try it out</p>
+          <div class="price">$0</div>
+          <ul>
+            <li>3 video scans per month</li>
+            <li>Full scorecard with grades</li>
+            <li>Specific actionable fixes</li>
+            <li>Quick wins section</li>
+            <li class="dimmed">Competitor analysis</li>
+            <li class="dimmed">Multi-channel support</li>
+          </ul>
+          <a href="#" class="btn-secondary" style="width:100%;text-align:center;" onclick="document.getElementById('url-input').focus(); return false;">Try It Free</a>
+        </div>
+        <div class="pricing-card featured">
+          <div class="badge">Most Popular</div>
+          <h3>Pro</h3>
+          <p class="pricing-tier-desc">For growing creators</p>
+          <div class="price">$12<span>/mo</span></div>
+          <ul>
+            <li>Unlimited video scans</li>
+            <li>Full scorecard with grades</li>
+            <li>Specific actionable fixes</li>
+            <li>Quick wins section</li>
+            <li class="dimmed">Competitor analysis</li>
+            <li class="dimmed">Multi-channel support</li>
+          </ul>
+          <button class="btn-primary btn-primary-full" onclick="handleUpgrade('pro')">Upgrade to Pro</button>
+        </div>
+        <div class="pricing-card featured-gold">
+          <div class="badge badge-gold">Best Value</div>
+          <h3>Agency</h3>
+          <p class="pricing-tier-desc">For serious creators & teams</p>
+          <div class="price">$29<span>/mo</span></div>
+          <ul>
+            <li>Unlimited video scans</li>
+            <li>Full scorecard with grades</li>
+            <li>Specific actionable fixes</li>
+            <li>Quick wins section</li>
+            <li>Competitor analysis</li>
+            <li>Multi-channel support</li>
+          </ul>
+          <button class="btn-gold" onclick="handleUpgrade('agency')">Go Agency</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- History Page -->
+  <section id="page-history" class="page-section hidden">
+    <div class="page-container">
+      <h2>Scan History</h2>
+      <p class="section-sub">Revisit your past video analyses.</p>
+      <div id="history-grid" class="history-grid"></div>
+      <div id="history-empty" class="history-empty hidden">
+        <p>No scans yet. <a href="#" onclick="navigateTo('/'); return false;">Analyze your first video</a></p>
+      </div>
+      <div id="history-pagination" class="pagination hidden"></div>
+    </div>
+  </section>
+
+  <!-- History Detail -->
+  <section id="page-history-detail" class="page-section hidden">
+    <div class="page-container">
+      <button class="btn-back" onclick="navigateTo('/history')">&#8592; Back to History</button>
+      <div id="history-scorecard"></div>
+    </div>
+  </section>
+
+  <!-- Settings Page -->
+  <section id="page-settings" class="page-section hidden">
+    <div class="page-container">
+      <h2>Settings</h2>
+      <p class="section-sub">Manage your account and subscription.</p>
+
+      <div class="settings-grid">
+        <div class="settings-card">
+          <h3>Account</h3>
+          <div class="settings-row">
+            <span class="settings-label">Email</span>
+            <span id="settings-email" class="settings-value"></span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Member since</span>
+            <span id="settings-since" class="settings-value"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Plan</h3>
+          <div class="settings-row">
+            <span class="settings-label">Current plan</span>
+            <span id="settings-plan" class="settings-value plan-badge"></span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Scans this month</span>
+            <span id="settings-scans" class="settings-value"></span>
+          </div>
+          <div id="settings-billing-row" class="settings-actions hidden">
+            <button class="btn-secondary" onclick="handleBillingPortal()">Manage Subscription</button>
+          </div>
+          <div id="settings-upgrade-row" class="settings-actions">
+            <button class="btn-primary" onclick="handleUpgrade('pro')" style="padding:12px 24px;font-size:14px;">Upgrade to Pro</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Change Password</h3>
+          <form id="password-form" onsubmit="handlePasswordChange(event)">
+            <div class="form-group">
+              <label for="current-password">Current Password</label>
+              <input type="password" id="current-password" required>
+            </div>
+            <div class="form-group">
+              <label for="new-password">New Password</label>
+              <input type="password" id="new-password" required minlength="8">
+            </div>
+            <div id="password-error" class="form-error hidden"></div>
+            <div id="password-success" class="form-success hidden"></div>
+            <button type="submit" class="btn-secondary">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>TubeScore &mdash; helping small creators grow.</p>
+  </footer>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="modal-content auth-modal-content">
+      <button class="modal-close" onclick="closeAuthModal()">&times;</button>
+      <h2 id="auth-modal-title">Log In</h2>
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div class="form-group">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" required minlength="8" autocomplete="current-password">
+        </div>
+        <div id="auth-error" class="form-error hidden"></div>
+        <button type="submit" id="auth-submit" class="btn-primary btn-primary-full">Log In</button>
+      </form>
+      <p class="auth-toggle">
+        <span id="auth-toggle-text">Don't have an account?</span>
+        <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(); return false;">Sign up</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Upgrade Modal -->
+  <div id="upgrade-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2>You've used your 3 free scans</h2>
+      <p>Upgrade for unlimited video analyses and keep improving your content.</p>
+      <button class="btn-primary" onclick="handleUpgrade('pro')">Pro — $12/mo</button>
+      <p class="modal-divider">or</p>
+      <button class="btn-gold" onclick="handleUpgrade('agency')">Agency — $29/mo</button>
+      <p class="modal-hint">Cancel anytime. Powered by Stripe.</p>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
