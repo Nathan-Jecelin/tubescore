@@ -91,30 +91,30 @@
     <!-- How It Works -->
     <section class="how-it-works" id="how-it-works">
       <h2>How It Works</h2>
-      <p class="section-sub">Three steps to better-performing videos.</p>
+      <p class="section-sub">30 seconds from URL to action plan.</p>
       <div class="steps">
         <div class="step-card">
           <div class="step-num">1</div>
           <h3>Paste Your URL</h3>
-          <p>Drop any YouTube video link into the analyzer.</p>
+          <p>Any YouTube video. Any niche. Any channel size.</p>
         </div>
         <div class="step-card">
           <div class="step-num">2</div>
-          <h3>AI Scans Everything</h3>
-          <p>We analyze your title, thumbnail, description, tags, engagement, and video length.</p>
+          <h3>AI Audits 6 Key Areas</h3>
+          <p>Title, thumbnail, description, tags, engagement, and video length — each graded A through F.</p>
         </div>
         <div class="step-card">
           <div class="step-num">3</div>
-          <h3>Get Specific Fixes</h3>
-          <p>Not vague advice — exact rewrites and changes you can make today.</p>
+          <h3>Get Copy-Paste Fixes</h3>
+          <p>AI-written title rewrites, description templates, and tag suggestions you can use immediately.</p>
         </div>
       </div>
     </section>
 
     <!-- Sample Scorecard Preview -->
     <section class="sample-preview">
-      <h2>See What You Get</h2>
-      <p class="section-sub">Real grades. Real fixes. Not generic tips.</p>
+      <h2>Here's What Your Scorecard Looks Like</h2>
+      <p class="section-sub"></p>
       <div class="sample-card">
         <div class="sample-grades">
           <div class="sample-grade"><span class="grade grade-a">A</span> Video Length</div>
@@ -193,11 +193,11 @@
     <!-- Pricing -->
     <section class="pricing" id="pricing">
       <h2>Simple Pricing</h2>
-      <p class="section-sub">Start free. Upgrade when you're ready to grow faster.</p>
+      <p class="section-sub">Start free. Upgrade when you need unlimited scans.</p>
       <div class="pricing-cards">
         <div class="pricing-card">
           <h3>Free</h3>
-          <p class="pricing-tier-desc">Try it out</p>
+          <p class="pricing-tier-desc">3 scans/month — perfect for trying it out</p>
           <div class="price">$0</div>
           <ul>
             <li>3 video scans per month</li>
@@ -207,12 +207,12 @@
             <li class="dimmed">Competitor comparison</li>
             <li class="dimmed">Batch analysis</li>
           </ul>
-          <a href="#" class="btn-secondary" style="width:100%;text-align:center;" onclick="document.getElementById('url-input').focus(); return false;">Try It Free</a>
+          <a href="#" class="btn-secondary" style="width:100%;text-align:center;" onclick="document.getElementById('url-input').focus(); return false;">Start Free</a>
         </div>
         <div class="pricing-card featured">
           <div class="badge">Most Popular</div>
           <h3>Pro</h3>
-          <p class="pricing-tier-desc">For growing creators</p>
+          <p class="pricing-tier-desc">Unlimited scans — audit every video before you publish</p>
           <div class="price">$12<span>/mo</span></div>
           <ul>
             <li>Unlimited video scans</li>
@@ -222,12 +222,12 @@
             <li class="dimmed">Competitor comparison</li>
             <li class="dimmed">Batch analysis</li>
           </ul>
-          <button class="btn-primary btn-primary-full" onclick="handleUpgrade('pro')">Upgrade to Pro</button>
+          <button class="btn-primary btn-primary-full" onclick="handleUpgrade('pro')">Get Unlimited Scans — $12/mo</button>
         </div>
         <div class="pricing-card featured-gold">
           <div class="badge badge-gold">Best Value</div>
           <h3>Agency</h3>
-          <p class="pricing-tier-desc">For serious creators & teams</p>
+          <p class="pricing-tier-desc">Unlimited scans + competitor comparison + batch analysis</p>
           <div class="price">$29<span>/mo</span></div>
           <ul>
             <li>Unlimited video scans</li>
@@ -237,9 +237,10 @@
             <li>Competitor comparison</li>
             <li>Batch analysis (up to 10)</li>
           </ul>
-          <button class="btn-gold" onclick="handleUpgrade('agency')">Go Agency</button>
+          <button class="btn-gold" onclick="handleUpgrade('agency')">Go Agency — $29/mo</button>
         </div>
       </div>
+      <p class="pricing-reassurance">Cancel anytime. No contracts. Powered by Stripe.</p>
     </section>
 
   </div>
@@ -426,12 +427,12 @@
   <div id="upgrade-modal" class="modal hidden">
     <div class="modal-content">
       <button class="modal-close" onclick="closeModal()">&times;</button>
-      <h2>You've used your 3 free scans</h2>
-      <p>Upgrade for unlimited video analyses and keep improving your content.</p>
-      <button class="btn-primary" onclick="handleUpgrade('pro')">Pro — $12/mo</button>
+      <h2>You've used your 3 free scans this month</h2>
+      <p>You've already found issues to fix. Imagine catching these before every upload.</p>
+      <button class="btn-primary" onclick="handleUpgrade('pro')">Upgrade to Pro — $12/mo</button>
       <p class="modal-divider">or</p>
-      <button class="btn-gold" onclick="handleUpgrade('agency')">Agency — $29/mo</button>
-      <p class="modal-hint">Cancel anytime. Powered by Stripe.</p>
+      <button class="btn-gold" onclick="handleUpgrade('agency')">Go Agency — $29/mo</button>
+      <p class="modal-hint">Cancel anytime. No contracts. Powered by Stripe.</p>
     </div>
   </div>
 

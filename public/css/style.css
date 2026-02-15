@@ -1058,6 +1058,13 @@ a { color: var(--accent); text-decoration: none; }
   text-align: center;
 }
 
+.pricing-reassurance {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 32px;
+}
+
 /* ── Footer ── */
 .footer {
   text-align: center;
