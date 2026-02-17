@@ -234,6 +234,12 @@ app.use('/api/', apiLimiter);
 
 app.use(express.json());
 app.use(cookieParser());
+
+// ── Admin route (before static middleware) ──
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 app.use(express.static('public'));
 
 // ── Auth Routes ──
@@ -692,6 +698,48 @@ app.post('/api/billing-portal', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Billing portal error:', err);
     res.status(500).json({ error: 'Failed to open billing portal.' });
+  }
+});
+
+// ── Admin auth middleware ──
+function requireAdmin(req, res, next) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) return res.status(500).json({ error: 'Admin not configured.' });
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized.' });
+  }
+
+  const token = authHeader.slice(7);
+  if (token !== adminPassword) {
+    return res.status(401).json({ error: 'Invalid password.' });
+  }
+
+  next();
+}
+
+// ── Admin stats endpoint ──
+app.get('/api/admin/stats', requireAdmin, (req, res) => {
+  try {
+    const totalScans = db.prepare('SELECT COUNT(*) as count FROM scan_history').get().count;
+
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    const scansToday = db.prepare('SELECT COUNT(*) as count FROM scan_history WHERE created_at >= ?').get(todayMidnight.toISOString()).count;
+
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const scansThisWeek = db.prepare('SELECT COUNT(*) as count FROM scan_history WHERE created_at >= ?').get(weekAgo.toISOString()).count;
+
+    const recentScans = db.prepare(`
+      SELECT id, video_id, video_title, channel_title, thumbnail_url, overall_grade, scan_type, created_at
+      FROM scan_history ORDER BY created_at DESC LIMIT 50
+    `).all();
+
+    res.json({ totalScans, scansToday, scansThisWeek, recentScans });
+  } catch (err) {
+    console.error('Admin stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats.' });
   }
 });
 

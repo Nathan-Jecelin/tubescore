@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TubeScore Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #06060b;
+      --surface: #111118;
+      --surface2: #1a1a25;
+      --border: #222233;
+      --text: #eeeef2;
+      --text-muted: #7b7b95;
+      --accent: #635bff;
+      --accent-hover: #7c75ff;
+      --grade-a: #22c55e;
+      --grade-b: #84cc16;
+      --grade-c: #eab308;
+      --grade-d: #f97316;
+      --grade-f: #ef4444;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── Login screen ── */
+    .login-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .login-box h1 span { color: var(--accent); }
+
+    .login-box p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .login-box input:focus {
+      border-color: var(--accent);
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .login-box button:hover { background: var(--accent-hover); }
+
+    .error-msg {
+      color: var(--grade-f);
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* ── Dashboard ── */
+    .dashboard { display: none; }
+
+    .dashboard-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dashboard-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .dashboard-header h1 span { color: var(--accent); }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .btn-sm:hover { border-color: var(--accent); }
+
+    .dashboard-body {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .stat-card .label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .value {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── Table ── */
+    .table-section h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    .table-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: var(--surface2); }
+
+    .thumb {
+      width: 60px;
+      height: 34px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .grade-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .grade-a { background: rgba(34, 197, 94, 0.15); color: var(--grade-a); }
+    .grade-b { background: rgba(132, 204, 22, 0.15); color: var(--grade-b); }
+    .grade-c { background: rgba(234, 179, 8, 0.15); color: var(--grade-c); }
+    .grade-d { background: rgba(249, 115, 22, 0.15); color: var(--grade-d); }
+    .grade-f { background: rgba(239, 68, 68, 0.15); color: var(--grade-f); }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-muted);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 48px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .table-wrapper { overflow-x: auto; }
+      table { min-width: 600px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login -->
+  <div id="login" class="login-wrapper">
+    <div class="login-box">
+      <h1>Tube<span>Score</span> Admin</h1>
+      <p>Enter admin password to continue</p>
+      <div id="loginError" class="error-msg"></div>
+      <form id="loginForm">
+        <input type="password" id="passwordInput" placeholder="Admin password" autocomplete="off" required>
+        <button type="submit">Log In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard">
+    <div class="dashboard-header">
+      <h1>Tube<span>Score</span> Admin</h1>
+      <div class="header-actions">
+        <button class="btn-sm" onclick="loadStats()">Refresh</button>
+        <button class="btn-sm" onclick="logout()">Log Out</button>
+      </div>
+    </div>
+    <div class="dashboard-body">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Total Scans</div>
+          <div class="value" id="totalScans">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Today</div>
+          <div class="value" id="scansToday">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">This Week</div>
+          <div class="value" id="scansThisWeek">-</div>
+        </div>
+      </div>
+
+      <div class="table-section">
+        <h2>Recent Scans</h2>
+        <div class="table-wrapper">
+          <div id="tableLoading" class="loading">Loading...</div>
+          <table id="scansTable" style="display:none;">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Title</th>
+                <th>Channel</th>
+                <th>Grade</th>
+                <th>Type</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="scansBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state" style="display:none;">No scans yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (sel) => document.querySelector(sel);
+
+    function getPassword() {
+      return sessionStorage.getItem('admin_password');
+    }
+
+    function gradeClass(grade) {
+      if (!grade) return '';
+      const letter = grade.charAt(0).toUpperCase();
+      if (letter === 'A') return 'grade-a';
+      if (letter === 'B') return 'grade-b';
+      if (letter === 'C') return 'grade-c';
+      if (letter === 'D') return 'grade-d';
+      return 'grade-f';
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
+      return d.toLocaleString();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    async function loadStats() {
+      const pw = getPassword();
+      if (!pw) return showLogin();
+
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': 'Bearer ' + pw }
+        });
+
+        if (res.status === 401) {
+          sessionStorage.removeItem('admin_password');
+          showLogin('Invalid or expired password.');
+          return;
+        }
+
+        if (!res.ok) throw new Error('Failed to load stats.');
+
+        const data = await res.json();
+
+        $('#totalScans').textContent = data.totalScans.toLocaleString();
+        $('#scansToday').textContent = data.scansToday.toLocaleString();
+        $('#scansThisWeek').textContent = data.scansThisWeek.toLocaleString();
+
+        const tbody = $('#scansBody');
+        tbody.innerHTML = '';
+
+        if (data.recentScans.length === 0) {
+          $('#scansTable').style.display = 'none';
+          $('#emptyState').style.display = 'block';
+        } else {
+          $('#emptyState').style.display = 'none';
+          $('#scansTable').style.display = 'table';
+          data.recentScans.forEach(scan => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${scan.thumbnail_url ? `<img class="thumb" src="${escapeHtml(scan.thumbnail_url)}" alt="">` : '-'}</td>
+              <td>${escapeHtml(scan.video_title)}</td>
+              <td>${escapeHtml(scan.channel_title)}</td>
+              <td><span class="grade-badge ${gradeClass(scan.overall_grade)}">${escapeHtml(scan.overall_grade) || '-'}</span></td>
+              <td><span class="type-badge">${escapeHtml(scan.scan_type || 'single')}</span></td>
+              <td>${formatTime(scan.created_at)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        $('#tableLoading').style.display = 'none';
+      } catch (err) {
+        console.error(err);
+        $('#tableLoading').textContent = 'Error loading data.';
+      }
+    }
+
+    function showLogin(errorMsg) {
+      $('#login').style.display = 'flex';
+      $('#dashboard').style.display = 'none';
+      if (errorMsg) {
+        $('#loginError').textContent = errorMsg;
+        $('#loginError').style.display = 'block';
+      }
+    }
+
+    function showDashboard() {
+      $('#login').style.display = 'none';
+      $('#dashboard').style.display = 'block';
+      loadStats();
+    }
+
+    function logout() {
+      sessionStorage.removeItem('admin_password');
+      showLogin();
+      $('#loginError').style.display = 'none';
+      $('#passwordInput').value = '';
+    }
+
+    $('#loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw = $('#passwordInput').value.trim();
+      if (!pw) return;
+
+      $('#loginError').style.display = 'none';
+
+      const res = await fetch('/api/admin/stats', {
+        headers: { 'Authorization': 'Bearer ' + pw }
+      });
+
+      if (res.status === 401) {
+        $('#loginError').textContent = 'Invalid password.';
+        $('#loginError').style.display = 'block';
+        return;
+      }
+
+      if (!res.ok) {
+        $('#loginError').textContent = 'Something went wrong. Try again.';
+        $('#loginError').style.display = 'block';
+        return;
+      }
+
+      sessionStorage.setItem('admin_password', pw);
+      showDashboard();
+    });
+
+    // Auto-login if password exists in session
+    if (getPassword()) {
+      showDashboard();
+    }
+  </script>
+</body>
+</html>
