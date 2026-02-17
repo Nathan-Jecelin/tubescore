@@ -262,8 +262,102 @@
       color: var(--text-muted);
     }
 
+    .stats-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .info-badge .badge-label {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-badge .badge-value {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .grade-chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .grade-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .grade-bar-row:last-child { margin-bottom: 0; }
+
+    .grade-bar-label {
+      width: 30px;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .grade-bar-track {
+      flex: 1;
+      height: 22px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .grade-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      min-width: 2px;
+      transition: width 0.4s ease;
+    }
+
+    .grade-bar-count {
+      width: 40px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .table-section { margin-bottom: 32px; }
+
     @media (max-width: 640px) {
       .stats-grid { grid-template-columns: 1fr; }
+      .stats-grid-2 { grid-template-columns: 1fr; }
       .table-wrapper { overflow-x: auto; }
       table { min-width: 600px; }
     }
@@ -307,6 +401,83 @@
         <div class="stat-card">
           <div class="label">This Week</div>
           <div class="value" id="scansThisWeek">-</div>
+        </div>
+      </div>
+
+      <!-- Row 2 — User stat cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Total Users</div>
+          <div class="value" id="totalUsers">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">New Users Today</div>
+          <div class="value" id="newUsersToday">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">New Users This Week</div>
+          <div class="value" id="newUsersThisWeek">-</div>
+        </div>
+      </div>
+
+      <!-- Row 3 — Email Captures & Active Sessions -->
+      <div class="stats-grid-2">
+        <div class="stat-card">
+          <div class="label">Email Captures</div>
+          <div class="value" id="totalEmailCaptures">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Active Sessions</div>
+          <div class="value" id="activeSessions">-</div>
+        </div>
+      </div>
+
+      <!-- Users by Plan -->
+      <h2 class="section-title">Users by Plan</h2>
+      <div class="badge-row" id="usersByPlan">-</div>
+
+      <!-- Scans by Type -->
+      <h2 class="section-title">Scans by Type</h2>
+      <div class="badge-row" id="scansByType">-</div>
+
+      <!-- Grade Distribution -->
+      <h2 class="section-title">Grade Distribution</h2>
+      <div class="grade-chart" id="gradeChart">-</div>
+
+      <!-- Top Channels -->
+      <div class="table-section">
+        <h2>Top Channels</h2>
+        <div class="table-wrapper">
+          <table id="topChannelsTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Channel</th>
+                <th>Scans</th>
+              </tr>
+            </thead>
+            <tbody id="topChannelsBody"></tbody>
+          </table>
+          <div id="topChannelsEmpty" class="empty-state" style="display:none;">No data yet.</div>
+        </div>
+      </div>
+
+      <!-- Top Videos -->
+      <div class="table-section">
+        <h2>Top Videos</h2>
+        <div class="table-wrapper">
+          <table id="topVideosTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Video</th>
+                <th>Channel</th>
+                <th>Scans</th>
+              </tr>
+            </thead>
+            <tbody id="topVideosBody"></tbody>
+          </table>
+          <div id="topVideosEmpty" class="empty-state" style="display:none;">No data yet.</div>
         </div>
       </div>
 
@@ -385,6 +556,78 @@
         $('#totalScans').textContent = data.totalScans.toLocaleString();
         $('#scansToday').textContent = data.scansToday.toLocaleString();
         $('#scansThisWeek').textContent = data.scansThisWeek.toLocaleString();
+
+        // User stats
+        $('#totalUsers').textContent = data.totalUsers.toLocaleString();
+        $('#newUsersToday').textContent = data.newUsersToday.toLocaleString();
+        $('#newUsersThisWeek').textContent = data.newUsersThisWeek.toLocaleString();
+
+        // Growth
+        $('#totalEmailCaptures').textContent = data.totalEmailCaptures.toLocaleString();
+        $('#activeSessions').textContent = data.activeSessions.toLocaleString();
+
+        // Users by Plan
+        const planEl = $('#usersByPlan');
+        planEl.innerHTML = '';
+        const plans = data.usersByPlan || {};
+        ['free', 'pro', 'agency'].forEach(p => {
+          const count = plans[p] || 0;
+          planEl.innerHTML += `<div class="info-badge"><span class="badge-label">${escapeHtml(p)}</span><span class="badge-value">${count.toLocaleString()}</span></div>`;
+        });
+
+        // Scans by Type
+        const typeEl = $('#scansByType');
+        typeEl.innerHTML = '';
+        const types = data.scansByType || {};
+        ['single', 'compare', 'batch'].forEach(t => {
+          const count = types[t] || 0;
+          typeEl.innerHTML += `<div class="info-badge"><span class="badge-label">${escapeHtml(t)}</span><span class="badge-value">${count.toLocaleString()}</span></div>`;
+        });
+
+        // Grade Distribution
+        const gradeColors = { 'A+': 'var(--grade-a)', 'A': 'var(--grade-a)', 'A-': 'var(--grade-a)', 'B+': 'var(--grade-b)', 'B': 'var(--grade-b)', 'B-': 'var(--grade-b)', 'C+': 'var(--grade-c)', 'C': 'var(--grade-c)', 'C-': 'var(--grade-c)', 'D+': 'var(--grade-d)', 'D': 'var(--grade-d)', 'D-': 'var(--grade-d)', 'F': 'var(--grade-f)' };
+        const gradeOrder = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'F'];
+        const gradeDist = data.gradeDistribution || {};
+        const maxGrade = Math.max(1, ...Object.values(gradeDist));
+        const chartEl = $('#gradeChart');
+        chartEl.innerHTML = '';
+        gradeOrder.forEach(g => {
+          const count = gradeDist[g] || 0;
+          const pct = (count / maxGrade) * 100;
+          chartEl.innerHTML += `<div class="grade-bar-row"><span class="grade-bar-label" style="color:${gradeColors[g]}">${g}</span><div class="grade-bar-track"><div class="grade-bar-fill" style="width:${pct}%;background:${gradeColors[g]}"></div></div><span class="grade-bar-count">${count}</span></div>`;
+        });
+
+        // Top Channels
+        const topChBody = $('#topChannelsBody');
+        topChBody.innerHTML = '';
+        if (data.topChannels && data.topChannels.length > 0) {
+          $('#topChannelsTable').style.display = 'table';
+          $('#topChannelsEmpty').style.display = 'none';
+          data.topChannels.forEach((ch, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${i + 1}</td><td>${escapeHtml(ch.channel_title)}</td><td>${ch.scan_count}</td>`;
+            topChBody.appendChild(tr);
+          });
+        } else {
+          $('#topChannelsTable').style.display = 'none';
+          $('#topChannelsEmpty').style.display = 'block';
+        }
+
+        // Top Videos
+        const topVidBody = $('#topVideosBody');
+        topVidBody.innerHTML = '';
+        if (data.topVideos && data.topVideos.length > 0) {
+          $('#topVideosTable').style.display = 'table';
+          $('#topVideosEmpty').style.display = 'none';
+          data.topVideos.forEach((v, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${i + 1}</td><td>${escapeHtml(v.video_title)}</td><td>${escapeHtml(v.channel_title)}</td><td>${v.scan_count}</td>`;
+            topVidBody.appendChild(tr);
+          });
+        } else {
+          $('#topVideosTable').style.display = 'none';
+          $('#topVideosEmpty').style.display = 'block';
+        }
 
         const tbody = $('#scansBody');
         tbody.innerHTML = '';

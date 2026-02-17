@@ -736,7 +736,47 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
       FROM scan_history ORDER BY created_at DESC LIMIT 50
     `).all();
 
-    res.json({ totalScans, scansToday, scansThisWeek, recentScans });
+    // User stats
+    const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    const newUsersToday = db.prepare('SELECT COUNT(*) as count FROM users WHERE created_at >= ?').get(todayMidnight.toISOString()).count;
+    const newUsersThisWeek = db.prepare('SELECT COUNT(*) as count FROM users WHERE created_at >= ?').get(weekAgo.toISOString()).count;
+    const usersByPlanRows = db.prepare('SELECT plan, COUNT(*) as count FROM users GROUP BY plan').all();
+    const usersByPlan = {};
+    usersByPlanRows.forEach(r => { usersByPlan[r.plan] = r.count; });
+
+    // Scan breakdown
+    const scansByTypeRows = db.prepare('SELECT scan_type, COUNT(*) as count FROM scan_history GROUP BY scan_type').all();
+    const scansByType = {};
+    scansByTypeRows.forEach(r => { scansByType[r.scan_type || 'single'] = r.count; });
+
+    const gradeDistRows = db.prepare('SELECT overall_grade, COUNT(*) as count FROM scan_history WHERE overall_grade IS NOT NULL GROUP BY overall_grade').all();
+    const gradeDistribution = {};
+    gradeDistRows.forEach(r => { gradeDistribution[r.overall_grade] = r.count; });
+
+    // Top content
+    const topChannels = db.prepare(`
+      SELECT channel_title, COUNT(*) as scan_count
+      FROM scan_history WHERE channel_title IS NOT NULL
+      GROUP BY channel_title ORDER BY scan_count DESC LIMIT 10
+    `).all();
+
+    const topVideos = db.prepare(`
+      SELECT video_id, video_title, channel_title, COUNT(*) as scan_count
+      FROM scan_history WHERE video_title IS NOT NULL
+      GROUP BY video_id ORDER BY scan_count DESC LIMIT 10
+    `).all();
+
+    // Growth
+    const totalEmailCaptures = db.prepare('SELECT COUNT(*) as count FROM email_captures').get().count;
+    const activeSessions = db.prepare('SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?').get(new Date().toISOString()).count;
+
+    res.json({
+      totalScans, scansToday, scansThisWeek, recentScans,
+      totalUsers, newUsersToday, newUsersThisWeek, usersByPlan,
+      scansByType, gradeDistribution,
+      topChannels, topVideos,
+      totalEmailCaptures, activeSessions
+    });
   } catch (err) {
     console.error('Admin stats error:', err);
     res.status(500).json({ error: 'Failed to fetch stats.' });
