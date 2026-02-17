@@ -290,6 +290,7 @@
       <h1>Tube<span>Score</span> Admin</h1>
       <div class="header-actions">
         <button class="btn-sm" onclick="loadStats()">Refresh</button>
+        <button class="btn-sm" id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-Refresh: Off</button>
         <button class="btn-sm" onclick="logout()">Log Out</button>
       </div>
     </div>
@@ -430,7 +431,25 @@
       loadStats();
     }
 
+    let autoRefreshInterval = null;
+    const AUTO_REFRESH_MS = 30000; // 30 seconds
+
+    function toggleAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        $('#autoRefreshBtn').textContent = 'Auto-Refresh: Off';
+      } else {
+        autoRefreshInterval = setInterval(loadStats, AUTO_REFRESH_MS);
+        $('#autoRefreshBtn').textContent = 'Auto-Refresh: On';
+      }
+    }
+
     function logout() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
       sessionStorage.removeItem('admin_password');
       showLogin();
       $('#loginError').style.display = 'none';
