@@ -51,9 +51,10 @@ function updateNavState() {
   if (currentUser) {
     guestNav.classList.add('hidden');
     userNav.classList.remove('hidden');
-    // Show/hide agency links
+    // Show/hide agency links (developers get full agency access)
+    const hasAgencyAccess = currentUser.plan === 'agency' || currentUser.role === 'developer';
     document.querySelectorAll('.nav-agency-link').forEach(el => {
-      if (currentUser.plan === 'agency') el.classList.remove('hidden');
+      if (hasAgencyAccess) el.classList.remove('hidden');
       else el.classList.add('hidden');
     });
   } else {
@@ -181,7 +182,8 @@ function handleRoute() {
     document.getElementById('page-compare-detail').classList.remove('hidden');
     loadCompareDetail(batchId);
   } else if (hash === '#/compare') {
-    if (!currentUser || currentUser.plan !== 'agency') {
+    const canCompare = currentUser && (currentUser.plan === 'agency' || currentUser.role === 'developer');
+    if (!canCompare) {
       navigateTo('/');
       if (currentUser) showError('Competitor comparison requires the Agency plan.');
       return;
@@ -193,7 +195,8 @@ function handleRoute() {
     document.getElementById('page-batch-detail').classList.remove('hidden');
     loadBatchDetail(batchId);
   } else if (hash === '#/batch') {
-    if (!currentUser || currentUser.plan !== 'agency') {
+    const canBatch = currentUser && (currentUser.plan === 'agency' || currentUser.role === 'developer');
+    if (!canBatch) {
       navigateTo('/');
       if (currentUser) showError('Batch analysis requires the Agency plan.');
       return;
@@ -989,12 +992,19 @@ async function loadSettings() {
     if (!res.ok) throw new Error();
     const data = await res.json();
 
+    const isDev = data.role === 'developer';
+
     document.getElementById('settings-email').textContent = data.email;
     document.getElementById('settings-since').textContent = new Date(data.created_at + 'Z').toLocaleDateString();
 
     const planEl = document.getElementById('settings-plan');
-    planEl.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
-    planEl.className = `settings-value plan-badge plan-${data.plan}`;
+    if (isDev) {
+      planEl.textContent = 'Developer';
+      planEl.className = 'settings-value plan-badge plan-developer';
+    } else {
+      planEl.textContent = data.plan.charAt(0).toUpperCase() + data.plan.slice(1);
+      planEl.className = `settings-value plan-badge plan-${data.plan}`;
+    }
 
     const scansEl = document.getElementById('settings-scans');
     if (data.scan_limit) {
@@ -1004,16 +1014,27 @@ async function loadSettings() {
     }
 
     const upgradeRow = document.getElementById('settings-upgrade-row');
-    if (data.plan === 'agency') {
-      document.getElementById('settings-billing-row').classList.remove('hidden');
+    const billingRow = document.getElementById('settings-billing-row');
+    const passwordSection = document.getElementById('password-section');
+
+    if (isDev) {
+      // Developer accounts: hide billing, upgrade, and password change
+      billingRow.classList.add('hidden');
       upgradeRow.classList.add('hidden');
+      if (passwordSection) passwordSection.classList.add('hidden');
+    } else if (data.plan === 'agency') {
+      billingRow.classList.remove('hidden');
+      upgradeRow.classList.add('hidden');
+      if (passwordSection) passwordSection.classList.remove('hidden');
     } else if (data.plan === 'pro') {
-      document.getElementById('settings-billing-row').classList.remove('hidden');
+      billingRow.classList.remove('hidden');
       upgradeRow.classList.remove('hidden');
       upgradeRow.innerHTML = '<button class="btn-gold" onclick="handleUpgrade(\'agency\')" style="padding:12px 24px;font-size:14px;">Upgrade to Agency — $29/mo</button>';
+      if (passwordSection) passwordSection.classList.remove('hidden');
     } else {
-      document.getElementById('settings-billing-row').classList.add('hidden');
+      billingRow.classList.add('hidden');
       upgradeRow.classList.remove('hidden');
+      if (passwordSection) passwordSection.classList.remove('hidden');
     }
   } catch { /* ignore */ }
 
@@ -1057,16 +1078,26 @@ async function handlePasswordChange(e) {
 }
 
 async function handleBillingPortal() {
+  const btn = document.getElementById('billing-portal-btn');
+  const errEl = document.getElementById('billing-error');
+  errEl.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Opening…';
   try {
     const res = await fetch('/api/billing-portal', { method: 'POST' });
     const data = await res.json();
     if (data.url) {
       window.location.href = data.url;
     } else {
-      showError(data.error || 'Failed to open billing portal.');
+      errEl.textContent = data.error || 'Failed to open billing portal.';
+      errEl.classList.remove('hidden');
     }
   } catch {
-    showError('Failed to open billing portal.');
+    errEl.textContent = 'Failed to open billing portal.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Manage Subscription';
   }
 }
 

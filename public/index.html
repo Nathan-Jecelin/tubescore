@@ -390,7 +390,8 @@
             <span id="settings-scans" class="settings-value"></span>
           </div>
           <div id="settings-billing-row" class="settings-actions hidden">
-            <button class="btn-secondary" onclick="handleBillingPortal()">Manage Subscription</button>
+            <button class="btn-secondary" id="billing-portal-btn" onclick="handleBillingPortal()">Manage Subscription</button>
+            <div id="billing-error" class="form-error hidden"></div>
           </div>
           <div id="settings-upgrade-row" class="settings-actions">
             <button class="btn-primary" onclick="handleUpgrade('pro')" style="padding:12px 24px;font-size:14px;">Pro — $12/mo</button>
@@ -398,7 +399,7 @@
           </div>
         </div>
 
-        <div class="settings-card">
+        <div class="settings-card" id="password-section">
           <h3>Change Password</h3>
           <form id="password-form" onsubmit="handlePasswordChange(event)">
             <div class="form-group">

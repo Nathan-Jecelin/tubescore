@@ -81,6 +81,9 @@ db.exec(`
 try { db.exec("ALTER TABLE scan_history ADD COLUMN scan_type TEXT DEFAULT 'single'"); } catch {}
 try { db.exec("ALTER TABLE scan_history ADD COLUMN batch_id TEXT"); } catch {}
 
+// ── Idempotent migration: add role column to users ──
+try { db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'"); } catch {}
+
 const FREE_LIMIT = 3;
 const SALT_ROUNDS = 10;
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -158,7 +161,7 @@ function requireAgency(req, res, next) {
   const token = req.cookies?.session;
   const user = getUserFromSession(token);
   if (!user) return res.status(401).json({ error: 'Please log in.' });
-  if (user.plan !== 'agency') {
+  if (user.plan !== 'agency' && user.role !== 'developer') {
     return res.status(403).json({ error: 'This feature requires the Agency plan.', requiresAgency: true });
   }
   req.user = user;
@@ -262,7 +265,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const { token, expires } = createSession(userId);
     setSessionCookie(res, token, expires);
 
-    res.json({ user: { id: userId, email, plan: 'free' } });
+    res.json({ user: { id: userId, email, plan: 'free', role: 'user' } });
   } catch (err) {
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Failed to create account.' });
@@ -283,7 +286,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { token, expires } = createSession(user.id);
     setSessionCookie(res, token, expires);
 
-    res.json({ user: { id: user.id, email: user.email, plan: user.plan } });
+    res.json({ user: { id: user.id, email: user.email, plan: user.plan, role: user.role } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Failed to log in.' });
@@ -304,6 +307,7 @@ app.get('/api/auth/me', softAuth, (req, res) => {
       id: req.user.id,
       email: req.user.email,
       plan: req.user.plan,
+      role: req.user.role,
     },
   });
 });
@@ -337,7 +341,7 @@ app.post('/api/analyze', softAuth, async (req, res) => {
     // Check access
     let isPro = false;
     if (req.user) {
-      isPro = req.user.plan === 'pro' || req.user.plan === 'agency';
+      isPro = req.user.plan === 'pro' || req.user.plan === 'agency' || req.user.role === 'developer';
       if (!isPro) {
         const count = getUserScanCountThisMonth(req.user.id);
         if (count >= FREE_LIMIT) {
@@ -420,6 +424,9 @@ app.post('/api/analyze', softAuth, async (req, res) => {
 
 // ── Stripe checkout ──
 app.post('/api/checkout', softAuth, async (req, res) => {
+  if (req.user?.role === 'developer') {
+    return res.status(403).json({ error: 'Developer accounts cannot purchase subscriptions.' });
+  }
   try {
     const { plan } = req.body || {};
     const origin = req.headers.origin || `http://localhost:${PORT}`;
@@ -658,16 +665,21 @@ app.get('/api/history/batch/:batchId', requireAuth, (req, res) => {
 // ── Account routes ──
 app.get('/api/account', requireAuth, (req, res) => {
   const scansUsed = getUserScanCountThisMonth(req.user.id);
+  const isDev = req.user.role === 'developer';
   res.json({
     email: req.user.email,
     plan: req.user.plan,
+    role: req.user.role,
     created_at: req.user.created_at,
     scans_used: scansUsed,
-    scan_limit: req.user.plan === 'free' ? FREE_LIMIT : null,
+    scan_limit: (req.user.plan === 'free' && !isDev) ? FREE_LIMIT : null,
   });
 });
 
 app.post('/api/account/password', requireAuth, async (req, res) => {
+  if (req.user.role === 'developer') {
+    return res.status(403).json({ error: 'Developer accounts cannot change passwords.' });
+  }
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Both current and new password are required.' });
@@ -688,6 +700,9 @@ app.post('/api/account/password', requireAuth, async (req, res) => {
 });
 
 app.post('/api/billing-portal', requireAuth, async (req, res) => {
+  if (req.user.role === 'developer') {
+    return res.status(403).json({ error: 'Developer accounts cannot access billing.' });
+  }
   try {
     if (!req.user.stripe_customer_id) {
       return res.status(400).json({ error: 'No billing information found. Please subscribe first.' });
@@ -718,6 +733,26 @@ function requireAdmin(req, res, next) {
 
   next();
 }
+
+// ── Create developer account (admin only) ──
+app.post('/api/admin/create-developer', requireAdmin, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const result = db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)').run(email, passwordHash, 'developer');
+
+    res.json({ success: true, user: { id: result.lastInsertRowid, email, role: 'developer' } });
+  } catch (err) {
+    console.error('Create developer error:', err);
+    res.status(500).json({ error: 'Failed to create developer account.' });
+  }
+});
 
 // ── Admin stats endpoint ──
 app.get('/api/admin/stats', requireAdmin, (req, res) => {

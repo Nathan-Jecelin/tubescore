@@ -1474,6 +1474,11 @@ a { color: var(--accent); text-decoration: none; }
   color: var(--gold);
 }
 
+.plan-developer {
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+}
+
 .settings-actions {
   margin-top: 16px;
   padding-top: 16px;
